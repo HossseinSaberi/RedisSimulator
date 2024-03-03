@@ -40,16 +40,16 @@ class RedisSimulator(BaseDataStore):
         super().__init__()
         self.lock = Lock()
 
-    def set_data(self, key: str, value: Union[str, list, set], ttl: Optional[int] = None) -> str:
+    def set_data(self, key: str, value: Union[str, list, set], ttl: Optional[str] = None) -> str:
         with self.lock:
             try:
                 time_to_live = ttl
-                expire_time = time.time() + ttl if ttl else None
+                expire_time = time.time() + int(ttl) if ttl else None
                 self.key_value_pairs[key] = {'value': value, 'ttl':expire_time, 'tl':time_to_live}
                 self.save_state()
                 return 'OK!'
-            except TypeError as e:
-                raise InvalidTTLError('Wrong TTL Type')
+            except ValueError as e:
+                raise InvalidTTLError('Error: Wrong --ttl Type , --ttl must be numeric')
 
     def get_data(self, key: str, res_key: Optional[str] = 'value', just_value: Optional[bool] = True) -> Union[str, list, set, None]:
         with self.lock:
@@ -75,7 +75,7 @@ class RedisSimulator(BaseDataStore):
         key_detail = self.get_data(key, just_value=False)
         if key_detail:
             if self.has_expired(key_detail):
-                return key_detail['tl']
+                return int(key_detail['tl'])
             return -1
         return -2
     

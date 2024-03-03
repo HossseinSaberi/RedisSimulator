@@ -5,6 +5,8 @@ class KeyNotFound(KeyError):
 class IllegalArgumentError(ValueError):
     pass
 
+class InvalidSetError(TypeError):
+    pass 
 
 class InvalidTTLError(TypeError):
     pass
