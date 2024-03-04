@@ -2,9 +2,10 @@ import argparse
 import inspect
 from exceptions import IllegalArgumentError, InvalidSetError
 from redis_simulator import RedisSimulator
+from mixnis import CleanDataValueMixin
 
 
-class CommandLineProcessor:
+class CommandLineProcessor(CleanDataValueMixin):
     def __init__(self, rs: RedisSimulator):
         self.rs = rs
         self.rs.load_state()
@@ -33,7 +34,8 @@ class CommandLineProcessor:
                     'GET': self.rs.get_data,
                     'DEL': self.rs.delete_data,
                     'TTL': self.rs.ttl_data,
-                    'ALL': self.rs.all_data
+                    'ALL': self.rs.all_data,
+                    'Exit': self.exit_function
                 }
         args = self.clean_data(args)
         if args.command in command_mapping:
@@ -52,6 +54,7 @@ class CommandLineProcessor:
         self.del_parser(subparser)
         self.ttl_parser(subparser)
         self.all_parser(subparser)
+        self.exit_parser(subparser)
 
     def set_parser(self, subparsers: argparse._SubParsersAction) -> None:
         set_parser = subparsers.add_parser('SET', help='Set a key-value pair with an optional time-to-live')
@@ -75,22 +78,16 @@ class CommandLineProcessor:
     def all_parser(self, subparsers: argparse._SubParsersAction) -> None:
         subparsers.add_parser('ALL', help='ALL DATA')
 
-    @staticmethod
-    def clean_data(args: argparse.Namespace) -> argparse.Namespace:
+    def exit_parser(self, subparsers: argparse._SubParsersAction) -> None:
+        subparsers.add_parser('Exit', help='Exit from Client')
+
+    def exit_function(self):
+        exit()
+
+    def clean_data(self, args: argparse.Namespace) -> argparse.Namespace:
         try:
             if args.command == 'SET':
-                values = args.value.split(',')
-                if len(values) > 1:
-                    if args.set in ['True', 'true']:
-                        args.value = set(values)
-                    elif args.set in [False,'False','false']:
-                        args.value = values
-                    else:
-                        args.value = values
-                        raise InvalidSetError('Warning : Wrong Type for --set , --set must be boolean , --set ignored!')
-                else:
-                    args.value = values[0]
-
+                self.handle_set_command(args)
         except InvalidSetError as e:
             print(e)
         return args
